@@ -17,6 +17,9 @@ Requirements:
 
 It is HEAVILY recommended to use a set seed, but weirdly not a requirement.
 
+# NOTES:
+- We are attempting to use Log.Debug("") as much as possible now - so if you need assistance, feel free to enable the EXILED debug mode beforehand and our plugin will log as much as we've set up.
+
 ---
 **Attribution Requirements for server owners/developers using Site-12 Development Team's code or their pre-built plugin:**
 - You are required to put the attribution name "Site-12 Development Team" in your **server info**
