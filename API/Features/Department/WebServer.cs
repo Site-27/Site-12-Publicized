@@ -31,24 +31,35 @@ public class WebServer
         Directory.CreateDirectory(Path.Combine(Paths.Configs, "Site12Internal"));
         if (Directory.Exists(Path.Combine(Paths.Plugins, "Site12")))
         {
+            Log.Info("Detected old folder! Handling..");
             var oldfolder = Path.Combine(Paths.Plugins, "Site12");
             if (File.Exists(Path.Combine(Paths.Configs, "Site12Internal", "Users.json")))
             {
                 Directory.CreateDirectory(Path.Combine(Paths.Configs, "Site12BackupOld"));
                 File.Move(Path.Combine(oldfolder, "Users.json"), Path.Combine(Paths.Configs, "Site12BackupOld", "Users.json"));
+                Log.Debug("Both Users.json in an old and new folder exist. Moving Users.json from 'EXILED/Plugins/Site12/' over to 'EXILED/Configs/Site12BackupOld/'.");
             }
-            if(File.Exists(Path.Combine(oldfolder, "Users.json")))
-                File.Move(Path.Combine(oldfolder, "Users.json"), Path.Combine(Paths.Configs, "Site12Internal", "Users.json"));
+
+            if (File.Exists(Path.Combine(oldfolder, "Users.json")))
+            {
+                File.Move(Path.Combine(oldfolder, "Users.json"),
+                    Path.Combine(Paths.Configs, "Site12Internal", "Users.json"));
+                Log.Debug("Moved old Users.json to new Users.json path.");
+            }
+
             if (!Directory.EnumerateFiles(oldfolder).Any())
+            {
                 Directory.Delete(oldfolder);
+                Log.Debug("Successfully deleted 'EXILED/Plugins/Site12/'! New path is 'EXILED/Configs/Site12Internal/'");
+            }
             else
                 Log.Warn("Warning: You still have an old folder named 'Site12' in 'EXILED/Plugins/'. The new config folder for the webserver is stored in 'EXILED/Configs/Site12Internal'.");
         }
-        
         if (!File.Exists(Path.Combine(Paths.Configs, "Site12Internal", "Users.json")))
         {
             users.SavedUsers = [new User ("ExampleUser", "ExamplePassword", "Other", true)];
             File.WriteAllText(Path.Combine(Paths.Configs, "Site12Internal", "Users.json"), JsonConvert.SerializeObject(users, Formatting.Indented));
+            Log.Debug("Created new EXILED/Configs/Site12Internal/Users.json");
         }
     }
 
@@ -58,14 +69,14 @@ public class WebServer
     {
         _listener.Start();
         _listener.BeginGetContext(OnRequest, null);
-        Log.Info("Started the WebServer! Listening for Requests... 😀");
+        Log.Info($"""Started the WebServer Listening for Requests... :)""");
     }
 
     // Only on errors.
     public void Stop()
     {
         _listener.Stop();
-        Log.Info("Shutting Down 😭");
+        Log.Warn("Shutting Down :(");
     }
 
     private void OnRequest(IAsyncResult result)
