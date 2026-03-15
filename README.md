@@ -1,4 +1,4 @@
-# Site-12 Publicized | Site-27 Fork
+# General Roleplay Plugin (GRPG)
 
 ## Quick-Build guide: 
 ---
