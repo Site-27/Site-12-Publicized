@@ -1,5 +1,8 @@
 # General Roleplay Plugin (GRPP)
 
+## Quick-Start guide:
+WIP, DM @z5tm for now
+
 ## Quick-Build guide: 
 ---
 Requirements: 
@@ -11,6 +14,8 @@ Requirements:
 [ProjectMER](https://github.com/Michal78900/ProjectMER/releases/latest) (put in ./lib/)
 
 [Mirror-Publicized and every other SL dep](https://github.com/Jesus-QC/SecretLabDependenciesBuilder/releases/latest)  (copy Mirror-Publicized.dll into ./lib/ - i think, also more information on SL references in the wiki)
+
+It is HEAVILY recommended to use a set seed, but weirdly not a requirement.
 
 ---
 **Attribution Requirements for server owners/developers using Site-12 Development Team's code or their pre-built plugin:**
