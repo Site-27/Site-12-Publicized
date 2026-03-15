@@ -89,6 +89,13 @@ public class WebServer
         var request = context.Request;
         var response = context.Response;
 
+        if (Plugin.Singleton.Config.AllowedIPs.Count > 0 &&
+            !Plugin.Singleton.Config.AllowedIPs.Contains(context.Request.RemoteEndPoint?.Address.ToString()))
+        {
+            response.StatusCode = 403;
+            response.Close();
+            return;
+        }
         switch (request.Url.AbsolutePath)
         {
             case "/roster/availablePlayers" when request.HttpMethod == "GET":
