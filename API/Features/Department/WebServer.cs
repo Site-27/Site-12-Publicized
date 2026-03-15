@@ -28,31 +28,31 @@ public class WebServer
         foreach (var prefix in prefixes)
             _listener.Prefixes.Add(prefix);
 
-        Directory.CreateDirectory(Path.Combine(Paths.Configs, "Site12"));
+        Directory.CreateDirectory(Path.Combine(Paths.Configs, "Site12Internal"));
         if (Directory.Exists(Path.Combine(Paths.Plugins, "Site12")))
         {
             var oldfolder = Path.Combine(Paths.Plugins, "Site12");
-            if (File.Exists(Path.Combine(Paths.Configs, "Site12", "Users.json")))
+            if (File.Exists(Path.Combine(Paths.Configs, "Site12Internal", "Users.json")))
             {
                 Directory.CreateDirectory(Path.Combine(Paths.Configs, "Site12BackupOld"));
                 File.Move(Path.Combine(oldfolder, "Users.json"), Path.Combine(Paths.Configs, "Site12BackupOld", "Users.json"));
             }
             if(File.Exists(Path.Combine(oldfolder, "Users.json")))
-                File.Move(Path.Combine(oldfolder, "Users.json"), Path.Combine(Paths.Configs, "Site12", "Users.json"));
+                File.Move(Path.Combine(oldfolder, "Users.json"), Path.Combine(Paths.Configs, "Site12Internal", "Users.json"));
             if (!Directory.EnumerateFiles(oldfolder).Any())
                 Directory.Delete(oldfolder);
             else
-                Log.Warn("Warning: You still have an old folder named 'Site12' in 'EXILED/Plugins/'. The new config folder for the webserver is stored in 'EXILED/Configs/Site12'.");
+                Log.Warn("Warning: You still have an old folder named 'Site12' in 'EXILED/Plugins/'. The new config folder for the webserver is stored in 'EXILED/Configs/Site12Internal'.");
         }
         
-        if (!File.Exists(Path.Combine(Paths.Configs, "Site12", "Users.json")))
+        if (!File.Exists(Path.Combine(Paths.Configs, "Site12Internal", "Users.json")))
         {
             users.SavedUsers = [new User ("ExampleUser", "ExamplePassword", "Other", true)];
-            File.WriteAllText(Path.Combine(Paths.Configs, "Site12", "Users.json"), JsonConvert.SerializeObject(users, Formatting.Indented));
+            File.WriteAllText(Path.Combine(Paths.Configs, "Site12Internal", "Users.json"), JsonConvert.SerializeObject(users, Formatting.Indented));
         }
     }
 
-    private static List<User> GetUsers() => JsonConvert.DeserializeObject<Users>(File.ReadAllText(Path.Combine(Paths.Configs, "Site12", "Users.json"))).SavedUsers;
+    private static List<User> GetUsers() => JsonConvert.DeserializeObject<Users>(File.ReadAllText(Path.Combine(Paths.Configs, "Site12Internal", "Users.json"))).SavedUsers;
 
     public void Start()
     {
