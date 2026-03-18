@@ -14,6 +14,8 @@
 namespace GRPP;
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using API.Attributes;
@@ -27,6 +29,8 @@ using UnityEngine;
 using Log = Exiled.API.Features.Log;
 using Server = Exiled.API.Features.Server;
 using System.Reflection.Emit;
+using CustomPlayerEffects;
+using Exiled.Loader;
 
 /// <summary>
 /// The main plugin class for this assembly.
@@ -65,13 +69,7 @@ public sealed class Plugin : Plugin<Config>
     public override void OnEnabled()
     {
         base.OnEnabled();
-
-        if (!Config.ConfigurationComplete)
-        {
-            Log.Error("GRPP was not configured properly...");
-            return;
-        }
-
+        
         if (_wasEverEnabled)
             return;
 
@@ -88,6 +86,18 @@ public sealed class Plugin : Plugin<Config>
         InvokeOnEnabledAttributes();
     }
 
+    // public override void OnDisabled()
+    // {
+    //     base.OnDisabled();
+    //     // if (!Config.ConfigurationComplete)
+    //     // {
+    //     //     Log.Error(
+    //     //         "GRPP has either not been configured or encountered an error during loading the configuration. This WILL cause issues, due to the early state of the plugin. For safety, the plugin has been disabled.");
+    //     //     return;
+    //     // }
+    // }
+    // need to find out how to make that thing above stop the webserver - a bit out of me but i shall figure it out soon
+    
     private static void SpawningSchematic(SchematicSpawnedEventArgs ev)
     {
         foreach (var gameObject in ev.Schematic.AttachedBlocks)
