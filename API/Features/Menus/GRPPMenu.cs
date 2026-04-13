@@ -6,6 +6,7 @@ using System.Numerics;
 using Department;
 using Exiled.API.Features;
 using Extensions;
+using Lobby;
 using MEC;
 using PlayerRoles;
 using UserSettings.ServerSpecific;
@@ -141,9 +142,9 @@ public class GRPPMenu
                 var player = ExPlayer.Get(hub);
                 var setRole = Department.GetRole(role.RoleName, role.Department);
 
-                if (!Lobby.IsRoleplay && !player.IsBypassModeEnabled)
+                if (!Main.IsRoleplay && !player.IsBypassModeEnabled)
                     break;
-                if (!Lobby.IsLobby && !player.IsBypassModeEnabled)
+                if (!Main.IsLobby && !player.IsBypassModeEnabled)
                     break;
 
                 if (setRole == player.ScomPlayer().CurrentRole.RoleEntry)

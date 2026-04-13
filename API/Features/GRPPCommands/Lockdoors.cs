@@ -3,6 +3,7 @@ namespace GRPP.API.Features.GRPPCommands;
 using System;
 using Attributes;
 using CommandSystem;
+using EasyTmp;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.Events.EventArgs.Player;
@@ -10,6 +11,7 @@ using Exiled.Events.EventArgs.Scp914;
 using Exiled.Permissions.Extensions;
 using GRPP.Extensions;
 using LabApi.Features.Wrappers;
+using Lobby;
 using MEC;
 using UnityEngine;
 using Door = Exiled.API.Features.Doors.Door;
@@ -56,9 +58,16 @@ public class Lockdoors : ICommand
         if (!sender.CheckRemoteAdmin(out response))
             return false;
 
-        if (Lobby.RestrictPermissions && !sender.CheckPermission("grpp.bypassrestrict"))
+        if (Main.RestrictPermissions && (!sender.CheckPermission("grpp.bypassrestrict") || !Main.MainHosters.Contains(ExPlayer.Get(sender).UserId)))
         {
-            response = "<color=orange>Restrictive mode is currently enabled. You also do not have the:</color> <color=blue>grpp.bypassrestrict</color><color=orange> permission.\nThis command has been ignored.</color>";
+            response = EasyArgs.Build()
+                .Blue("Restrictive permissions")
+                .Space().Orange("mode is currently")
+                .Space().Green("enabled").Orange(". You also do not have the ")
+                .Space().Blue("\"grpp.bypassrestrict\"")
+                .Space().Orange("permission, nor are you the").Space().Blue("main hoster").Space()
+                .Orange("of the roleplay. \nThis command has been")
+                .Space().Red("ignored").Orange(".").Done();
             return false;
         }
 

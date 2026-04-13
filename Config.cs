@@ -51,8 +51,8 @@ public class Config : IConfig
     [Description("Whether the WeightSystem should be on or off.")]
     public bool WeightSystem { get; set; } = false;
 
-    [Description("The maximum height that is permitted by the `.height` client command.")] public float MaxHeight { get; set; } = 1.1f;
-    [Description("The minimum height that is permitted by the `.height` client command.")] public float MinHeight { get; set; } = 0.9f;
+    [Description("The maximum height that is permitted by the `.height` client command.")] public float? MaxHeight { get; set; } = 1.1f;
+    [Description("The minimum height that is permitted by the `.height` client command.")] public float? MinHeight { get; set; } = 0.9f;
 
     [Description("Experiemntal features toggle. (Unimplemented)")]
     public bool Experimental { get; set; } = false;

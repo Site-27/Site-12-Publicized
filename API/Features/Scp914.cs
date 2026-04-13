@@ -8,7 +8,6 @@ using Attributes;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Extensions;
-using MapGeneration;
 
 public static class Scp914
 {

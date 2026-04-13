@@ -5,8 +5,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using CommandSystem;
 using Attributes;
+using EasyTmp;
 using Exiled.API.Features;
+using Exiled.Permissions.Extensions;
+using Extensions;
 using InventorySystem.Items.Usables.Scp330;
+using Lobby;
 using ProjectMER.Features.Extensions;
 
 public abstract class RankMod
@@ -31,11 +35,21 @@ public class RankModCommand : ICommand
     
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
-        // if (Lobby.RestrictPermissions && !sender.CheckPermission("grpp.bypassrestrict"))
-        // {
-        //     response = "<color=orange>Restrictive mode is currently enabled. You also do not have the:</color> <color=blue>grpp.bypassrestrict</color><color=orange> permission.\nThis command has been ignored.</color>";
-        //     return false;
-        // }
+        if (!sender.CheckRemoteAdmin(out response))
+            return false;
+        
+        if (Main.RestrictPermissions && (!sender.CheckPermission("grpp.bypassrestrict") || !Main.MainHosters.Contains(ExPlayer.Get(sender).UserId)))
+        {
+            response = EasyArgs.Build()
+                .Blue("Restrictive permissions")
+                .Space().Orange("mode is currently")
+                .Space().Green("enabled").Orange(". You also do not have the ")
+                .Space().Blue("\"grpp.bypassrestrict\"")
+                .Space().Orange("permission, nor are you the").Space().Blue("main hoster").Space()
+                .Orange("of the roleplay. \nThis command has been")
+                .Space().Red("ignored").Orange(".").Done();
+            return false;
+        }
         if (Plugin.Singleton.Config.RankModEnabled)
         {
             RankMod.IsEnabled = true;

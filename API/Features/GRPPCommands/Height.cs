@@ -115,7 +115,9 @@ public class HeightClient : ICommand
             return false;
         }
         var final = valueCm / 183f;
-        final = Mathf.Clamp(final, min:Plugin.Singleton.Config.MinHeight, max:Plugin.Singleton.Config.MaxHeight);
+        final = Mathf.Clamp(final, 
+            min:Plugin.Singleton.Config.MinHeight ?? Defaults.MinHeight, 
+            max:Plugin.Singleton.Config.MaxHeight ?? Defaults.MaxHeight);
 
         response = "You are an SCP!"; if (player.IsScp) return false;
         

@@ -11,6 +11,7 @@ using Exiled.API.Extensions;
 using Exiled.Events.EventArgs.Player;
 using Extensions;
 using GRPPCommands;
+using Lobby;
 using PlayerRoles;
 using UnityEngine;
 // THERE'S LIKE A HUGE HUGE HUGE AMOUNT OF LACKING NULL CHECKS IN HERE. COME BACK TO THIS SOON -Z5.
@@ -229,7 +230,7 @@ public class SetCustomRank : ICommand
 
             player.CustomInfo = $"[- {player.ScomPlayer().CurrentRole.RankName} -]\n{player.ScomPlayer().CurrentRole.RoleEntry.Role.CustomI}";
 
-            if (Lobby.HasRoleplayStarted || !Lobby.IsRoleplay)
+            if (Main.HasRoleplayStarted || !Main.IsRoleplay)
             {
                 player.ClearAmmo();
                 player.ClearInventory();
@@ -238,7 +239,7 @@ public class SetCustomRank : ICommand
                 {
                     BeginRoleplay.GetItem(item, out var cost, player).GiveItem(player);
 
-                    if (!Lobby.IsRoleplay) continue;
+                    if (!Main.IsRoleplay) continue;
                     Department.DepartmentsData[Department.GetDepartmentByRole(player.ScomPlayer().CurrentRole.RoleEntry)].Balance -= cost;
 
                     Department.UpdateDepartmentData(Department.GetDepartmentByRole(player.ScomPlayer().CurrentRole.RoleEntry));
@@ -282,7 +283,7 @@ public class SetCustomRank : ICommand
         target.Role.Set(target.ScomPlayer().CurrentRole.Rank.RoleTypeID, SpawnReason.None, RoleSpawnFlags.None);
         target.CustomInfo = $"[- {target.ScomPlayer().CurrentRole.RankName} -]\n{target.ScomPlayer().CurrentRole.RoleEntry.Role.CustomI}";
 
-        if (Lobby.HasRoleplayStarted || !Lobby.IsRoleplay)
+        if (Main.HasRoleplayStarted || !Main.IsRoleplay)
         {
             target.ClearAmmo();
             target.ClearInventory();
@@ -291,7 +292,7 @@ public class SetCustomRank : ICommand
             {
                 BeginRoleplay.GetItem(item, out var cost, target).GiveItem(target);
 
-                if (!Lobby.IsRoleplay) continue;
+                if (!Main.IsRoleplay) continue;
                 var data = Department.DepartmentsData[Department.GetDepartmentByRole(target.ScomPlayer().CurrentRole.RoleEntry)];
                 data.Balance -= cost;
 
@@ -314,7 +315,7 @@ public class SetRank : ICommand
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, [UnscopedRef] out string response)
     {
         response = "Feature is Disabled.";
-        if (!Lobby.IsLobby)
+        if (!Main.IsLobby)
             return false;
 
         var player = ExPlayer.Get(sender);
@@ -445,7 +446,7 @@ public class DepartmentHandler
 
     private static void Escaping(EscapingEventArgs ev)
     {
-        if (!Lobby.IsRoleplay)
+        if (!Main.IsRoleplay)
             return;
         ev.IsAllowed = false;
     }
@@ -454,7 +455,7 @@ public class DepartmentHandler
     {
         if (ev.Player.UserId.Contains("ID_Dummy"))
             return;
-        if (!Lobby.IsRoleplay) return;
+        if (!Main.IsRoleplay) return;
         if (ev.Reason is SpawnReason.None or SpawnReason.RoundStart) return;
         ev.Player.DisplayNickname = null;
         if (ev.Player.GameObject && ev.Player.ScomPlayer())

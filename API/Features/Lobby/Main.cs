@@ -1,22 +1,25 @@
-﻿namespace GRPP.API.Features;
+﻿namespace GRPP.API.Features.Lobby;
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Attributes;
+using System.Linq;
 using Christmas.Scp2536;
 using CommandSystem;
-using Core;
-using Core.Webhooks;
-using CustomItems;
-using Department;
+using EasyTmp;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Permissions.Extensions;
-using Extensions;
-using GRPPCommands;
-using Items;
+using GRPP.API.Attributes;
+using GRPP.API.Core;
+using GRPP.API.Core.Webhooks;
+using GRPP.API.Features.CustomItems;
+using GRPP.API.Features.Department;
+using GRPP.API.Features.GRPPCommands;
+using GRPP.API.Features.Items;
+using GRPP.Extensions;
+using JetBrains.Annotations;
 using LabApi.Features.Permissions;
 using MEC;
 using PlayerRoles;
@@ -26,20 +29,24 @@ using ProjectMER.Features.ToolGun;
 using UnityEngine;
 using Broadcast = Broadcast;
 using Door = Exiled.API.Features.Doors.Door;
+using Logger = LabApi.Features.Console.Logger;
 using Random = System.Random;
 using Round = Exiled.API.Features.Round;
+using Scp914 = Features.Scp914;
 
-public abstract class Lobby
+public abstract class Main
 {
     public static bool IsLobby;
     public static bool IsRoleplay;
     public static bool HasRoleplayStarted;
     public static SchematicObject? Schematic; // woo nullable!
     public static bool RestrictPermissions { get; set; } // false by default btw
-
-
+    public static List<String> MainHosters { get; set; } = [];
+    public static List<string> LoadedMaps { get; set; } = [];
+    
     public static string Site = Plugin.Singleton.Config?.SiteName ?? Defaults.Site;
-
+    
+    [UsedImplicitly]
     [OnPluginEnabled]
     public static void InitEvents()
     {
@@ -47,6 +54,9 @@ public abstract class Lobby
         PlayerHandlers.Dying += OnLeaving;
 
         StaticUnityMethods.OnUpdate -= (Action)DeadmanSwitch.OnUpdate;
+        if (Plugin.Singleton.Config.MapsToLoadOnLobby == null) return;
+        
+        
     }
 
     private static void WaitingForPlayers() // reset methodd !
@@ -56,6 +66,7 @@ public abstract class Lobby
         if (Scp2536Controller.Singleton)
             UObject.Destroy(Scp2536Controller.Singleton);
         Scp559Cake.PossibleSpawnpoints?.Clear();
+        MainHosters = []; // wooo reset mainhosters list !!
         IsRoleplay = false;
         IsLobby = false;
         HasRoleplayStarted = false;
@@ -63,6 +74,16 @@ public abstract class Lobby
         Shiv.IsEnabled = Plugin.Singleton.Config.ShivsNormalRounds;
         Mining.IsEnabled = Plugin.Singleton.Config.ShivsNormalRounds;
         RoleplayTime.StopClock();
+    }
+
+    private static void LoadRoleplaySchematics()
+    {
+        
+    }
+
+    private static void UnloadRoleplaySchematics()
+    {
+        
     }
 
     private static void OnLeaving(DyingEventArgs ev)
@@ -88,6 +109,7 @@ public abstract class Lobby
     }
 }
 
+[UsedImplicitly]
 [CommandHandler(typeof(RemoteAdminCommandHandler))]
 public class UseLobbyCommand : ICommand
 {
@@ -104,42 +126,71 @@ public class UseLobbyCommand : ICommand
             return false;
         }
 
-        if (Lobby.IsLobby)
+        if (Main.IsLobby)
         {
             response =
                 "<color=blue>Lobby</color> <color=orange>is already</color> <color=green>enabled</color><color=orange>!\nUse</color> <color=blue>l0</color> <color=orange>or </color><color=blue>endlobby</color><color=orange> to disable lobby!</color>";
             return false;
         }
 
-        if (Lobby.Site.IsEmpty())
-            Lobby.Site = new Random().Next(10, 99).ToString();
+        if (Main.Site.IsEmpty())
+            Main.Site = new Random().Next(10, 99).ToString();
         var exUser = ExPlayer.Get(sender);
+        if (exUser == null)
+        {
+            response = EasyArgs.Build().Red("Error:")
+                .Space().Orange("user is null.").Done();
+            return false;
+        }
         // response = "<color=red>No Permission.</color>";
         // if (!sender.CheckPermission("scombat.lobby")) // socmbat.lobby > grpp.lobby has bene done btw
         // return false;
 
         // OHHH I see what it's doing now! it overrides the `response` var each time, then if an if check fails there it just sends the latest response. smart.
+        var mapsToCheck = Plugin.Singleton.Config.MapsToLoadOnLobby;
+        if (mapsToCheck != null && mapsToCheck.Any()) // if mapsToLoad is not null and the list isn't completely empty
+        {
+            var keys = MapUtils.LoadedMaps.Keys.ToHashSet(); // convert loaded maps (keys of them, the strings of the mapnames) to a hashset (for optimization) 
+            var mapToload
+                = mapsToCheck
+                    .Where // where the condition is true
+                    (map // n = the variable name we're usin, a string in this case
+                        => // foreach map in the list,
+                        !keys.Contains(map)) // if the map is IN the list of loaded maps, do not include it. If this had no "!", this would be only including ones where it is contained.
+                    .ToList(); // then put it in a list for ezpz parsing !
+
+            foreach (var map in mapToload.OfType<string>()) // for each map in maps to load (also a implicit null check  in oftype string lol
+                try
+                {
+                    MapUtils.LoadMap(map); // if the map is not null, load it.
+                    Main.LoadedMaps.Add(map); // add it to the list of loaded maps!
+                }
+                catch (Exception e)
+                {
+                    Logger.Debug($"Failure when attempting to load maps. \"{e.Message}\"");
+                }
+        }
 
         exUser.Broadcast(5, "REMEMBER TO USE \"BEGINROLEPLAY\"", Broadcast.BroadcastFlags.AdminChat);
 
-        if (Lobby.IsRoleplay)
+        if (Main.IsRoleplay)
         {
             foreach (var player in ExPlayer.List)
                 if (player.Role.IsDead)
-                    Lobby.Action(player);
+                    Main.Action(player);
         }
         else
         {
             var lobbySchematic = Plugin.Singleton.Config.LobbySchematic;
             if (lobbySchematic != null)
-                Lobby.Schematic = ObjectSpawner.SpawnSchematic(lobbySchematic, Vector3.zero, Vector3.zero);
+                Main.Schematic = ObjectSpawner.SpawnSchematic(lobbySchematic, Vector3.zero, Vector3.zero);
         }
 
         Round.Start();
         Round.IsLocked = true;
 
-        Lobby.IsLobby = true;
-        Lobby.IsRoleplay = true;
+        Main.IsLobby = true;
+        Main.IsRoleplay = true;
 
         Shiv.IsEnabled = false;
         Mining.IsEnabled = false;
@@ -155,14 +206,15 @@ public class UseLobbyCommand : ICommand
         _ = AsyncWebhookRPLobby.AsyncOps("lobby"/*sender*/);
 
         Door.LockAll(999999, DoorLockType.AdminCommand); // can also use NoPower // i see why the last devs did this. the fuckass ra panel can't - okay it's cuz of somethin else weird idfk. works now with admincommand.
-        foreach (var player in ExPlayer.List) Lobby.Action(player);
+        foreach (var player in ExPlayer.List) Main.Action(player);
 
-        PlayerHandlers.Verified += Lobby.OnJoined;
+        PlayerHandlers.Verified += Main.OnJoined;
         response = "<color=blue>Lobby</color> <color=orange>is now</color> <color=green>on</color>";
         return true;
     }
 }
 
+[UsedImplicitly]
 [CommandHandler(typeof(RemoteAdminCommandHandler))]
 public class StopLobbyCommand : ICommand
 {
@@ -179,19 +231,19 @@ public class StopLobbyCommand : ICommand
             return false;
         }
 
-        if (!Lobby.IsLobby)
+        if (!Main.IsLobby)
         {
             response = "<color=blue>Lobby</color> <color=orange>is already</color> <color=red>off.</color>";
             return false;
         }
 
-        if (Lobby.Schematic)
+        if (Main.Schematic)
         {
-            var a = Lobby.Schematic.GetComponent<MapEditorObject>();
+            var a = Main.Schematic.GetComponent<MapEditorObject>();
             ToolGunHandler.DeleteObject(a);
         }
 
-        Lobby.IsLobby = false;
+        Main.IsLobby = false;
 
         Name.IsEnabled = false;
         Height.IsEnabled = false;
@@ -221,30 +273,41 @@ public class BeginRoleplay : ICommand
             return false;
         }
 
-        if (Lobby.HasRoleplayStarted)
+        if (Main.HasRoleplayStarted)
         {
             response =
                 "<color=orange>Sorry, there is an ongoing</color> <color=blue>roleplay.</color>\n<color=orange>Note: There is no reason to run this command twice.</color>";
             return false;
         }
-        if (arguments.Count >= 1 && (arguments.At(1) == "1" || arguments.At(1) == "yes") &&
+        if (arguments.Count >= 1 && uint.TryParse(arguments.At(0), out _)) // note: if we wanted to have no sitenums like 008 (the modification i just made keep it 008, old one made it 8) - just swap out _ to out var site
+            Main.Site = arguments.At(0);
+
+        if (arguments.Count >= 2 && (arguments.At(1) == "1" || arguments.At(1) == "yes") &&
             sender.CheckPermission("grpp.restrictpermissions"))
             if (Plugin.Singleton.Config.RestrictiveMode)
-                Lobby.RestrictPermissions = true;
-
-        if (arguments.Count > 0 && uint.TryParse(arguments.At(0), out var r))
-            Lobby.Site = r.ToString();
-
-        Lobby.HasRoleplayStarted = true;
+                Main.RestrictPermissions = true;
+        
+        TaserMod.TaserCardiac = true; // permits caridac !
+        Main.HasRoleplayStarted = true;
         GiveInventories(); // DEPENDS ON HASROLEPLAYSTARTED
         sender.AddPermissions("grpp.bypassrestrict"); // per-round!
+        Main.MainHosters.Add(ExPlayer.Get(sender).UserId);
+        // if (Plugin.Singleton.Config.BypassID64 != null)
+        //     Plugin.Singleton.Config.BypassID64.Add(Command);
+        // else
+        //     Logger.Info("There are currently no SteamIDs set up for use to bypass restrictive mode.");
+        // if (Plugin.Singleton.Config.BypassRoles == null)
+        // {
+        //     
+        // }
+        
         _ = AsyncWebhookRPLobby.AsyncOps("roleplay"/*sender*/);
         
         if (arguments.Count <= 0)
         {
-            response = Lobby.RestrictPermissions
-                ? $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Lobby.Site}</color><color=orange>, and restrictive mode is</color> <color=green>enabled</color><color=orange>. Not sure how, but..</color>"
-                : $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Lobby.Site}</color><color=orange>, and restrictive mode is</color> <color=red>disabled</color>.\n<color=orange>The server has set the allowance of RestrictiveMode to:</color> <color=blue>{Plugin.Singleton.Config.RestrictiveMode}</color><color=orange>.</color>\n<color=orange>Note: To set RestrictiveMode, use</color> <color=blue>`rp1 sitenumber yes/no`</color> <color=orange>or</color> <color=blue>`rp1 sitenumber 1/0`</color>";
+            response = Main.RestrictPermissions
+                ? $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Main.Site}</color><color=orange>, and restrictive mode is</color> <color=green>enabled</color><color=orange>. Not sure how, but..</color>"
+                : $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Main.Site}</color><color=orange>, and restrictive mode is</color> <color=red>disabled</color>.\n<color=orange>The server has set the allowance of RestrictiveMode to:</color> <color=blue>{Plugin.Singleton.Config.RestrictiveMode}</color><color=orange>.</color>\n<color=orange>Note: To set RestrictiveMode, use</color> <color=blue>`rp1 sitenumber yes/no`</color> <color=orange>or</color> <color=blue>`rp1 sitenumber 1/0`</color>";
             // if (Plugin.Singleton?.Config?.RPWebHook !=null && Plugin.Singleton.Config.WebhookPlayerCountEnabled && Plugin.Singleton.Config.WebhookTpsEnabled) _ = new WebhookHandler().UseWebhook(Plugin.Singleton?.Config?.WebhookRPStartName, Plugin.Singleton?.Config?.RPWebHook, "", "", $"Players: {Player.ConnectionsCount}/{Server.MaxPlayers}\nTPS:{Server.Tps}", "A roleplay has been started!", "7419530", true, true);
             return true;
         }
@@ -253,9 +316,9 @@ public class BeginRoleplay : ICommand
 
         if (arguments.Count >= 1)
         {
-            response = Lobby.RestrictPermissions
-                ? $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Lobby.Site}</color><color=orange>, and restrictive mode is</color> <color=green>enabled</color><color=orange>.</color>"
-                : $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Lobby.Site}</color><color=orange>, and restrictive mode is</color> <color=red>disabled</color>.\n<color=orange>Note that restrictive mode is, by default, disabled. Also, the server has set the allowance of RestrictiveMode to: <color=blue>{Plugin.Singleton.Config.RestrictiveMode}</color><color=orange>.</color>";
+            response = Main.RestrictPermissions
+                ? $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Main.Site}</color><color=orange>, and restrictive mode is</color> <color=green>enabled</color><color=orange>.</color>"
+                : $"<color=green>Roleplay has begun.</color> <color=orange>The site name is</color> <color=blue>{Main.Site}</color><color=orange>, and restrictive mode is</color> <color=red>disabled</color>.\n<color=orange>Note that restrictive mode is, by default, disabled. Also, the server has set the allowance of RestrictiveMode to: <color=blue>{Plugin.Singleton.Config.RestrictiveMode}</color><color=orange>.</color>";
             // if (Plugin.Singleton?.Config?.RPWebHook !=null && Plugin.Singleton.Config.WebhookPlayerCountEnabled && Plugin.Singleton.Config.WebhookTpsEnabled) _ = new WebhookHandler().UseWebhook(Plugin.Singleton?.Config?.WebhookRPStartName, Plugin.Singleton?.Config?.RPWebHook, "", "", $"Players: {Player.ConnectionsCount}/{Server.MaxPlayers}\nTPS:{Server.Tps}", "A roleplay has been started!", "7419530", true, true);
             return true;
         }
@@ -267,7 +330,7 @@ public class BeginRoleplay : ICommand
 
     private static void GiveInventories()
     {
-        if (!Lobby.HasRoleplayStarted)
+        if (!Main.HasRoleplayStarted)
             return;
         try
         {
@@ -288,15 +351,15 @@ public class BeginRoleplay : ICommand
                 {
                     var itemGiver = GetItem(item, out var cost, player);
 
-                    Department.Department
-                            .DepartmentsData[Department.Department.GetDepartmentByRole(scom.CurrentRole.RoleEntry)]
+                    Features.Department.Department
+                            .DepartmentsData[Features.Department.Department.GetDepartmentByRole(scom.CurrentRole.RoleEntry)]
                             .Balance -=
                         cost;
                     itemGiver?.GiveItem(player);
                 }
 
-                Department.Department.UpdateDepartmentData(
-                    Department.Department.GetDepartmentByRole(scom.CurrentRole.RoleEntry));
+                Features.Department.Department.UpdateDepartmentData(
+                    Features.Department.Department.GetDepartmentByRole(scom.CurrentRole.RoleEntry));
             }
         }
         catch (NullReferenceException e)
@@ -382,6 +445,8 @@ public class BeginRoleplay : ICommand
         return null; // I must test this in game cuz what if. like. yeah.
     }
 }
+
+[UsedImplicitly]
 [CommandHandler(typeof(RemoteAdminCommandHandler))]
 public class EndRoleplay : ICommand
 {
@@ -396,22 +461,29 @@ public class EndRoleplay : ICommand
             response = "<color=orange>Sorry, but you do not have the</color> <color=blue>grpp.lobby</color> <color=orange>permission.</color>";
             return false;
         }
-        if (!sender.CheckPermission("grpp.bypassrestrict"))
+        if (Main.RestrictPermissions && (!sender.CheckPermission("grpp.bypassrestrict") || !Main.MainHosters.Contains(ExPlayer.Get(sender).UserId)))
         {
-            response = "<color=orange>Sorry, but you do not have the</color> <color=blue>grpp.bypassrestrict</color> <color=orange>permission.</color>\n<color=orange>Note: This</color> <color=blue>permission</color> <color=orange>is either given to high ranking roles, or the one who started the</color> <color=blue>roleplay.</color>";
+            response = EasyArgs.Build()
+                .Blue("Restrictive permissions")
+                .Space().Orange("mode is currently")
+                .Space().Green("enabled").Orange(". You also do not have the ")
+                .Space().Blue("\"grpp.bypassrestrict\"")
+                .Space().Orange("permission, nor are you the").Space().Blue("main hoster").Space()
+                .Orange("of the roleplay. \nThis command has been")
+                .Space().Red("ignored").Orange(".").Done();
             return false;
         }
 
-        if (!Lobby.HasRoleplayStarted)
+        if (!Main.HasRoleplayStarted)
         {
             response = "<color=orange>Sorry, there is</color> <color=red>not</color> <color=orange>an ongoing</color> <color=blue>roleplay.</color>";
             return false;
         }
         
-        Lobby.HasRoleplayStarted = false;
-        Lobby.IsRoleplay = false;
-        Lobby.IsLobby = false;
-        Lobby.RestrictPermissions = false;
+        Main.HasRoleplayStarted = false;
+        Main.IsRoleplay = false;
+        Main.IsLobby = false;
+        Main.RestrictPermissions = false;
 
         TeslaGate12.IsEnabled = true;
         Shiv.IsEnabled = true;
@@ -438,12 +510,20 @@ public class EndRoleplay : ICommand
                 arguments.At(1) == "unlock")
                 Round.IsLocked = false;
         }
+        if (Plugin.Singleton.Config.LobbyShouldUnloadMaps ?? false) // if lobby should unload on maps is enabled (with a default to false if null)
+        {
+            foreach (var map in Main.LoadedMaps) // for each map in this list,
+                MapUtils.UnloadMap(map); // unload the map.
+            Main.LoadedMaps.Clear();
+        }
+        
 
         response = "<color=blue>Roleplay</color> <color=orange>has</color> <color=red>ended</color><color=orange>.</color>";
         return true;
     }
 }
 
+[UsedImplicitly]
 [CommandHandler(typeof(RemoteAdminCommandHandler))]
 public class SetSite : ICommand
 {
@@ -455,21 +535,27 @@ public class SetSite : ICommand
     {
         if (!sender.CheckRemoteAdmin(out response))
             return false;
-        if (Lobby.RestrictPermissions && !sender.CheckPermission("grpp.bypassrestrict"))
+        if (Main.RestrictPermissions && (!sender.CheckPermission("grpp.bypassrestrict") || !Main.MainHosters.Contains(ExPlayer.Get(sender).UserId)))
         {
-            response =
-                "<color=orange>Restrictive mode is currently enabled. You also do not have the:</color> <color=blue>grpp.bypassrestrict</color><color=orange> permission.\nThis command has been ignored.</color>";
+            response = EasyArgs.Build()
+                .Blue("Restrictive permissions")
+                .Space().Orange("mode is currently")
+                .Space().Green("enabled").Orange(". You also do not have the ")
+                .Space().Blue("\"grpp.bypassrestrict\"")
+                .Space().Orange("permission, nor are you the").Space().Blue("main hoster").Space()
+                .Orange("of the roleplay. \nThis command has been")
+                .Space().Red("ignored").Orange(".").Done();
             return false;
         }
 
         if (arguments.Count == 0)
         {
             response =
-                $"<color=orange>>The</color> <color=blue>site's number</color> <color=orange>is currently:</color><color=blue>{Lobby.Site}</color><color=orange>.</color>";
+                $"<color=orange>>The</color> <color=blue>site's number</color> <color=orange>is currently:</color><color=blue>{Main.Site}</color><color=orange>.</color>";
             return true;
         }
 
-        Lobby.Site = arguments.At(0);
+        Main.Site = arguments.At(0);
         response =
             $"<color=orange>>The</color> <color=blue>site's number</color> <color=orange>has been set to</color> <color=blue>{arguments.At(0)}</color>";
         return true;

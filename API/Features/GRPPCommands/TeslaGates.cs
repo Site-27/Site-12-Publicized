@@ -2,9 +2,11 @@
 
 using System;
 using CommandSystem;
+using EasyTmp;
 using Exiled.Permissions.Extensions;
 using GRPP.API.Attributes;
 using GRPP.Extensions;
+using Lobby;
 
 public static class TeslaGate12
 {
@@ -42,9 +44,16 @@ public class TeslaGateEnable : ICommand
     {
         if (!sender.CheckRemoteAdmin(out response))
             return false;
-        if (Lobby.RestrictPermissions && !sender.CheckPermission("grpp.bypassrestrict"))
+        if (Main.RestrictPermissions && (!sender.CheckPermission("grpp.bypassrestrict") || !Main.MainHosters.Contains(ExPlayer.Get(sender).UserId)))
         {
-            response = "<color=blue>Restrictive mode</color> <color=orange>is currently</color> <color=green>enabled</oclor><color=orange>. You also do not have the '</color><color=blue>grpp.bypassrestrict</color><color=orange>' <color=blue>permission</color><color=orange>.\nThis command has been</color> <color=red>ignored</color><color=orange>.</color>";
+            response = EasyArgs.Build()
+                .Blue("Restrictive permissions")
+                .Space().Orange("mode is currently")
+                .Space().Green("enabled").Orange(". You also do not have the ")
+                .Space().Blue("\"grpp.bypassrestrict\"")
+                .Space().Orange("permission, nor are you the").Space().Blue("main hoster").Space()
+                .Orange("of the roleplay. \nThis command has been")
+                .Space().Red("ignored").Orange(".").Done();
             return false;
         }
 
@@ -68,9 +77,16 @@ public class TeslaGateDisable : ICommand
     {
         if (!sender.CheckRemoteAdmin(out response))
             return false;
-        if (Lobby.RestrictPermissions && !sender.CheckPermission("grpp.bypassrestrict"))
+        if (Main.RestrictPermissions && (!sender.CheckPermission("grpp.bypassrestrict") || !Main.MainHosters.Contains(ExPlayer.Get(sender).UserId)))
         {
-            response = "<color=blue>Restrictive mode</color> <color=orange>is currently</color> <color=green>enabled</oclor><color=orange>. You also do not have the '</color><color=blue>grpp.bypassrestrict</color><color=orange>' <color=blue>permission</color><color=orange>.\nThis command has been</color> <color=red>ignored</color><color=orange>.</color>";
+            response = EasyArgs.Build()
+                .Blue("Restrictive permissions")
+                .Space().Orange("mode is currently")
+                .Space().Green("enabled").Orange(". You also do not have the ")
+                .Space().Blue("\"grpp.bypassrestrict\"")
+                .Space().Orange("permission, nor are you the").Space().Blue("main hoster").Space()
+                .Orange("of the roleplay. \nThis command has been")
+                .Space().Red("ignored").Orange(".").Done();
             return false;
         }
 

@@ -14,6 +14,7 @@ using Exiled.Events.EventArgs.Player;
 using Extensions;
 using InventorySystem;
 using InventorySystem.Items;
+using Lobby;
 using NorthwoodLib.Pools;
 
 public sealed class KeycardHandler : CustomItemHandler
@@ -79,7 +80,7 @@ public sealed class KeycardHandler : CustomItemHandler
     {
         if (ev.Item == null)
             return;
-        if (!ev.Item.IsKeycard || !Lobby.IsRoleplay || Container.HasItem(ev.Item.Serial) || CustomItemsManager.Get<CustomHandler>().Container.HasItem(ev.Item.Serial)) return;
+        if (!ev.Item.IsKeycard || !Main.IsRoleplay || Container.HasItem(ev.Item.Serial) || CustomItemsManager.Get<CustomHandler>().Container.HasItem(ev.Item.Serial)) return;
         var role = "None";
         var currentLevel = 0;
         List<Levels> levels = [];
@@ -116,6 +117,7 @@ public sealed class KeycardHandler : CustomItemHandler
                 break;
             case ItemType.KeycardContainmentEngineer:
                 role = "Engineer";
+                currentLevel = 3;
                 levels = [Levels.Containment, Levels.Engineering];
                 break;
             case ItemType.KeycardMTFOperative:
@@ -170,7 +172,7 @@ public sealed class KeycardHandler : CustomItemHandler
             sb.AppendLine($"┃<b>CLEARANCE CODES</b><pos=467><b>Level</b><pos=612>┃");
             sb.AppendLine($"┃{(card.CurrentSubLevels.Count > 0 ? string.Join(", ", card.CurrentSubLevels) : "No Clearance Codes...")}<pos=467>{card.CurrentLevel}<pos=612>┃");
             sb.AppendLine($"┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫");
-            sb.AppendLine($"┃Site-{Lobby.Site}<pos=350>Iss: {DateTime.Today.AddYears(30):d}   Exp: {DateTime.Today.AddYears(32):d}<pos=612>┃");
+            sb.AppendLine($"┃Site-{Main.Site}<pos=350>Iss: {DateTime.Today.AddYears(30):d}   Exp: {DateTime.Today.AddYears(32):d}<pos=612>┃");
             sb.AppendLine($"┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛");
 
             hintToShow = StringBuilderPool.Shared.ToStringReturn(sb);
@@ -181,7 +183,7 @@ public sealed class KeycardHandler : CustomItemHandler
 
     private void InteractingLocker(InteractingLockerEventArgs ev)
     {
-        if (!Lobby.IsRoleplay)
+        if (!Main.IsRoleplay)
             return;
 
         if (ev.Player.IsBypassModeEnabled)
@@ -231,7 +233,7 @@ public sealed class KeycardHandler : CustomItemHandler
 
     private void InteractingDoor(InteractingDoorEventArgs ev)
     {
-        if (!Lobby.IsRoleplay)
+        if (!Main.IsRoleplay)
             return;
 
         if (ev.Player.IsBypassModeEnabled)
